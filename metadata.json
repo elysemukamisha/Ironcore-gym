@@ -1,0 +1,7 @@
+{
+  "name": "IronCore Gym",
+  "description": "A high-performance landing page for IronCore Gym featuring an AI-powered voice assistant powered by Gemini.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
