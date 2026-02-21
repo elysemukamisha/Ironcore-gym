@@ -15,6 +15,7 @@ export const VoiceChatWidget: React.FC = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -32,7 +33,7 @@ export const VoiceChatWidget: React.FC = () => {
   // Initialize Speech Recognition
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
@@ -42,10 +43,16 @@ export const VoiceChatWidget: React.FC = () => {
         const transcript = event.results[0][0].transcript;
         handleUserMessage(transcript);
         setIsListening(false);
+        setStatusMessage('');
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        if (event.error === 'no-speech') {
+          setStatusMessage('No speech detected. Please try again.');
+        } else {
+          console.error('Speech recognition error', event.error);
+          setStatusMessage('Error accessing microphone.');
+        }
         setIsListening(false);
       };
 
@@ -66,8 +73,14 @@ export const VoiceChatWidget: React.FC = () => {
     } else {
       // Stop any current speaking
       synthRef.current.cancel();
-      recognitionRef.current.start();
-      setIsListening(true);
+      setStatusMessage('');
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("Failed to start recognition:", err);
+        setStatusMessage("Could not start microphone.");
+      }
     }
   };
 
@@ -183,7 +196,10 @@ export const VoiceChatWidget: React.FC = () => {
       {/* Input Area */}
       <div className="p-4 bg-black border-t border-iron-gray space-y-3">
         {/* Voice Status */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
+          {statusMessage && (
+            <span className="text-xs text-red-400 animate-pulse">{statusMessage}</span>
+          )}
           <button
             onClick={toggleListening}
             className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
